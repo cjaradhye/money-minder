@@ -9,6 +9,7 @@
  import { useCategories } from '@/hooks/useCategories';
  import { useInsights } from '@/hooks/useAnalytics';
  import { InsightsCard } from '@/components/dashboard/InsightsCard';
+ import { ImportCSVModal } from '@/components/transactions/ImportCSVModal';
  import { formatCurrency, formatDate } from '@/lib/transactionParser';
  import { cn } from '@/lib/utils';
  import { Transaction } from '@/types/finance';
@@ -17,6 +18,7 @@
    const [search, setSearch] = useState('');
    const [typeFilter, setTypeFilter] = useState<string>('all');
    const [categoryFilter, setCategoryFilter] = useState<string>('all');
+   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
    
    const { data: transactions = [], isLoading } = useTransactions({
      search: search || undefined,
@@ -52,7 +54,7 @@
            </p>
          </div>
          <div className="flex items-center gap-2">
-           <Button variant="outline" size="sm">
+           <Button variant="outline" size="sm" onClick={() => setIsImportModalOpen(true)}>
              <Upload className="h-4 w-4 mr-1" />
              Import CSV
            </Button>
@@ -194,6 +196,9 @@
  
        {/* AI Insights */}
        <InsightsCard insights={insights} loading={insightsLoading} />
+
+       {/* Import CSV Modal */}
+       <ImportCSVModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
      </div>
    );
  }
