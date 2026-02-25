@@ -305,6 +305,7 @@
 
       {/* AI Insights */}
       <InsightsCard insights={insights} loading={insightsLoading} />
+       <ImportCSVModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
      </div>
    );
  }
