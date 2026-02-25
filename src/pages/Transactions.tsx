@@ -1,11 +1,13 @@
  import { useState } from 'react';
- import { Plus, Search, Filter, ArrowDownLeft, ArrowUpRight, Trash2, Upload } from 'lucide-react';
+ import { Plus, Search, Filter, ArrowDownLeft, ArrowUpRight, Trash2, Upload, Pencil } from 'lucide-react';
  import { Button } from '@/components/ui/button';
  import { Input } from '@/components/ui/input';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Badge } from '@/components/ui/badge';
  import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
- import { useTransactions, useDeleteTransaction } from '@/hooks/useTransactions';
+ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+ import { Label } from '@/components/ui/label';
+ import { useTransactions, useDeleteTransaction, useUpdateTransaction } from '@/hooks/useTransactions';
  import { useCategories } from '@/hooks/useCategories';
  import { useInsights } from '@/hooks/useAnalytics';
  import { InsightsCard } from '@/components/dashboard/InsightsCard';
@@ -17,6 +19,13 @@
    const [search, setSearch] = useState('');
    const [typeFilter, setTypeFilter] = useState<string>('all');
    const [categoryFilter, setCategoryFilter] = useState<string>('all');
+   const [editOpen, setEditOpen] = useState(false);
+   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+   const [editForm, setEditForm] = useState({
+     description: '',
+     amount: '',
+     categoryId: ''
+   });
    
    const { data: transactions = [], isLoading } = useTransactions({
      search: search || undefined,
@@ -26,11 +35,39 @@
    const { data: categories = [] } = useCategories();
    const { data: insights = [], isLoading: insightsLoading } = useInsights();
    const deleteTransaction = useDeleteTransaction();
+   const updateTransaction = useUpdateTransaction();
  
    const handleDelete = async (id: string) => {
      if (confirm('Are you sure you want to delete this transaction?')) {
        await deleteTransaction.mutateAsync(id);
      }
+   };
+
+   const openEditDialog = (transaction: Transaction) => {
+     setEditingTransactionId(transaction.id);
+     setEditForm({
+       description: transaction.description,
+       amount: String(transaction.amount),
+       categoryId: transaction.category_id || ''
+     });
+     setEditOpen(true);
+   };
+
+   const handleSaveEdit = async () => {
+     if (!editingTransactionId) return;
+
+     const parsedAmount = Number.parseFloat(editForm.amount);
+     if (!editForm.description.trim() || Number.isNaN(parsedAmount)) return;
+
+     await updateTransaction.mutateAsync({
+       id: editingTransactionId,
+       description: editForm.description.trim(),
+       amount: parsedAmount,
+       category_id: editForm.categoryId || undefined
+     });
+
+     setEditOpen(false);
+     setEditingTransactionId(null);
    };
  
    // Group transactions by date
@@ -173,6 +210,14 @@
                            )}>
                              {tx.type === 'INCOME' ? '+' : '-'}{formatCurrency(Number(tx.amount))}
                            </span>
+                          <Button
+                             variant="ghost"
+                             size="icon"
+                             className="opacity-0 group-hover:opacity-100 transition-opacity"
+                             onClick={() => openEditDialog(tx)}
+                           >
+                             <Pencil className="h-4 w-4" />
+                           </Button>
                            <Button
                              variant="ghost"
                              size="icon"
@@ -190,10 +235,74 @@
              </div>
            )}
          </CardContent>
-       </Card>
- 
-       {/* AI Insights */}
-       <InsightsCard insights={insights} loading={insightsLoading} />
+      </Card>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Transaction</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Name</Label>
+              <Input
+                id="edit-description"
+                value={editForm.description}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Transaction name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-amount">Amount</Label>
+              <Input
+                id="edit-amount"
+                type="number"
+                step="0.01"
+                min="0"
+                value={editForm.amount}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, amount: e.target.value }))}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select
+                value={editForm.categoryId || '__none__'}
+                onValueChange={(value) =>
+                  setEditForm((prev) => ({ ...prev, categoryId: value === '__none__' ? '' : value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Uncategorized</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.icon} {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleSaveEdit}
+              disabled={
+                updateTransaction.isPending ||
+                !editForm.description.trim() ||
+                !editForm.amount ||
+                Number.isNaN(Number.parseFloat(editForm.amount))
+              }
+            >
+              {updateTransaction.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Insights */}
+      <InsightsCard insights={insights} loading={insightsLoading} />
      </div>
    );
  }

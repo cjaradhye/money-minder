@@ -3,6 +3,13 @@
  import { Transaction, CreateTransactionInput } from '@/types/finance';
  import { useAuth } from './useAuth';
  import { toast } from 'sonner';
+
+ export interface UpdateTransactionInput {
+   id: string;
+   amount: number;
+   description: string;
+   category_id?: string;
+ }
  
  export function useTransactions(filters?: {
    startDate?: string;
@@ -118,6 +125,37 @@
      },
      onError: (error) => {
        toast.error(`Failed to delete transaction: ${error.message}`);
+     }
+   });
+ }
+
+ export function useUpdateTransaction() {
+   const queryClient = useQueryClient();
+
+   return useMutation({
+     mutationFn: async (input: UpdateTransactionInput) => {
+       const { data, error } = await supabase
+         .from('transactions')
+         .update({
+           amount: input.amount,
+           description: input.description,
+           category_id: input.category_id || null
+         })
+         .eq('id', input.id)
+         .select()
+         .single();
+
+       if (error) throw error;
+       return data;
+     },
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+       queryClient.invalidateQueries({ queryKey: ['analytics'] });
+       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+       toast.success('Transaction updated');
+     },
+     onError: (error) => {
+       toast.error(`Failed to update transaction: ${error.message}`);
      }
    });
  }
