@@ -11,6 +11,7 @@
  import { useCategories } from '@/hooks/useCategories';
  import { useInsights } from '@/hooks/useAnalytics';
  import { InsightsCard } from '@/components/dashboard/InsightsCard';
+ import { ImportCSVModal } from '@/components/transactions/ImportCSVModal';
  import { formatCurrency, formatDate } from '@/lib/transactionParser';
  import { cn } from '@/lib/utils';
  import { Transaction } from '@/types/finance';
@@ -20,6 +21,7 @@
    const [typeFilter, setTypeFilter] = useState<string>('all');
    const [categoryFilter, setCategoryFilter] = useState<string>('all');
    const [editOpen, setEditOpen] = useState(false);
+   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
    const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
    const [editForm, setEditForm] = useState({
      description: '',
@@ -89,7 +91,7 @@
            </p>
          </div>
          <div className="flex items-center gap-2">
-           <Button variant="outline" size="sm">
+           <Button variant="outline" size="sm" onClick={() => setIsImportModalOpen(true)}>
              <Upload className="h-4 w-4 mr-1" />
              Import CSV
            </Button>

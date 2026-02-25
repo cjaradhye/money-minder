@@ -37,7 +37,7 @@
          <div className="flex h-16 items-center justify-between">
            {/* Logo */}
            <Link to="/dashboard" className="flex items-center gap-2">
-             <img src="/logo.svg" alt="Quell" className="h-8 w-8" />
+             <img src="/logo.png" alt="Quell" className="h-8 w-8" />
              <span className="font-display text-xl font-bold text-primary">Quell</span>
            </Link>
  

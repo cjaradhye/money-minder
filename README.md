@@ -1,73 +1,89 @@
-# Welcome to your Lovable project
+# Quell Money Minder
 
-## Project info
+A personal finance web app built with Vite, React, TypeScript, shadcn-ui, Tailwind, and Supabase. It provides dashboards, transactions, budgets, goals, recurring entries, and alerts with authenticated access and per-user data isolation.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**What This Repo Contains**
+- Frontend app in `src/` with React Router, React Query, and UI components.
+- Supabase client and typed data models for finance entities.
+- Database schema and RLS policies in `supabase/migrations/`.
 
-## How can I edit this code?
+**Key Features**
+- Authenticated access with email/password and Google OAuth.
+- Dashboard analytics, budgets, goals progress, and recent activity.
+- Transactions with categories and tags.
+- Recurring transactions with pause/resume.
+- Alerts with unread count and marking read.
+- Quick add transaction via Spotlight (Cmd+Shift+U) with a natural language parser.
 
-There are several ways of editing your application.
+**Architecture Overview**
+- Routing is handled by React Router with a protected app shell. Authenticated users land on `/dashboard`, and unauthenticated users are redirected to `/auth`.
+- React Query manages server state, caching, and invalidation after mutations.
+- Supabase provides authentication and the Postgres database. Row Level Security (RLS) ensures each user can only access their own data.
 
-**Use Lovable**
+**Sequence Diagram**
+```mermaid
+sequenceDiagram
+actor User
+participant UI as React UI
+participant Auth as Supabase Auth
+participant RQ as React Query
+participant DB as Supabase Postgres
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+User->>UI: Open app
+UI->>Auth: getSession()
+Auth-->>UI: session or null
+alt Authenticated
+  UI->>RQ: Fetch dashboard queries
+  RQ->>DB: Select transactions/budgets/goals/alerts
+  DB-->>RQ: Results
+  RQ-->>UI: Cached data
+else Not authenticated
+  UI-->>User: Redirect to /auth
+  User->>UI: Sign in / Sign up
+  UI->>Auth: signInWithPassword or signUp
+  Auth-->>UI: session
+  UI->>RQ: Fetch dashboard queries
+end
 
-Changes made via Lovable will be committed automatically to this repo.
+User->>UI: Quick add transaction (Cmd+Shift+U)
+UI->>UI: Parse input
+UI->>DB: Insert transaction
+DB-->>UI: Created transaction
+UI->>RQ: Invalidate transactions/analytics/budgets
+RQ-->>UI: Refetched data
+```
 
-**Use your preferred IDE**
+**Data Model Summary**
+- `profiles`, `user_preferences`
+- `categories`, `tags`, `transaction_tags`
+- `transactions`, `recurring_transactions`
+- `budgets`, `goals`, `goal_contributions`
+- `alerts`, `ai_suggestions`, `audit_logs`
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+**Important Flows**
+- Auth and profile bootstrap is handled by Supabase. A DB trigger creates a profile, preferences, and default categories for new users.
+- Budget status is computed client-side by combining monthly budgets with expense transactions for the same month.
+- Insights are deterministic and computed from analytics summary.
+- Goal progress is computed client-side and updated via `goal_contributions` triggers.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
+**Local Development**
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
 npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+**Tests**
+```sh
+npm run test
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+**Environment Variables**
+Create a `.env` with:
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+**Primary App Entry Points**
+- `src/main.tsx` mounts the React app.
+- `src/App.tsx` defines routes and providers.
+- `src/hooks/*` contains data fetching and mutations.
+- `supabase/migrations/*` contains the database schema and policies.
